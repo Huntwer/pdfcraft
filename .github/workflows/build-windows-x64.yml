@@ -1,0 +1,52 @@
+name: Build Windows x64 Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Windows x64
+    runs-on: windows-2022
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Download OCR models
+        run: cargo xtask models
+
+      - name: Build release
+        run: cargo build --release --locked --package pdfcraft --target x86_64-pc-windows-msvc
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          $exe = "target/x86_64-pc-windows-msvc/release/pdfcraft.exe"
+
+          if (!(Test-Path $exe)) {
+            throw "Executable not found: $exe"
+          }
+
+          $file = Get-Item $exe
+          Write-Host "Executable: $($file.Name)"
+          Write-Host "Size: $($file.Length) bytes"
+
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash
+          Write-Host "SHA256: $hash"
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdfcraft-windows-x64-release
+          path: target/x86_64-pc-windows-msvc/release/pdfcraft.exe
+          if-no-files-found: error
+          retention-days: 30
