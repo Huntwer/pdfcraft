@@ -2,6 +2,9 @@ name: Build Windows x64 + MCP CLI
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/build-windows-x64-mcp.yml"
 
 permissions:
   contents: read
